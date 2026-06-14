@@ -1,11 +1,18 @@
+import imagekit from "../configs/imageKit.js";
 import Chat from "../models/Chat.js";
 import User from "../models/user.js";
-
+import axios from "axios";
 //Text based Ai chat message controller
 export const textMessageController = async (req, res) => {
   try {
     const userId = req.user._id;
     const { chatId, prompt } = req.body;
+    if (req.user.credits < 1) {
+      return res.json({
+        success: false,
+        message: "you don't have enough credits to use this feature",
+      });
+    }
 
     const chat = await Chat.findOne({ userId, _id: chatId });
     chat.messages.push({
@@ -59,5 +66,39 @@ export const imageMessageController = async (req, res) => {
       timestamp: Date.now(),
       isImage: false,
     });
-  } catch (error) {}
+
+    //ENCODE PROMPT
+    // Construct ImageKit AI generation URL
+    const generatedImageUrl = `${process.env.IMAGEKIT_URL_ENDPOINT}/
+ik-genimg-prompt-${encodedPrompt}/devgpt/${Date.now()}.png?tr=w-800,
+h-800`;
+
+    // Convert to Base64
+    const base64Image = `data:image/png;base64,${Buffer.from(aiImageResponse.data, "binary").toString("base64")}`;
+
+    // Upload to ImageKit Media Library
+    const uploadResponse = await imagekit.upload({
+      file: base64Image,
+      fileName: `${Date.now()}.png`,
+      folder: "devgpt",
+    });
+
+    // Trigger generation by fetching from ImageKit
+    const aiImageResponse = await axios.get(generatedImageUrl, {
+      responseType: "arraybuffer",
+    });
+    const reply = {
+      role: "assistant",
+      content: uploadResponse.url,
+      timestamp: Date.now(),
+      isImage: true,
+      isPublished,
+    };
+    res.json({ success: true, reply });
+    chat.messages.push(reply);
+    await chat.save();
+    await User.updateOne({ _id: userId }, { $inc: { credits: -2 } });
+  } catch (error) {
+    res.json({ success: false, message: error.message });
+  }
 };
