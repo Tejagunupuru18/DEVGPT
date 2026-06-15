@@ -5,8 +5,9 @@ import {
   textMessageController,
 } from "../controllers/messageController.js";
 
-const messageRouter = expressRouter();
+const messageRouter = express.Router();
+
 messageRouter.post("/text", protect, textMessageController);
-messageRouter.post("/text", protect, imageMessageController);
+messageRouter.post("/image", protect, imageMessageController);
 
 export default messageRouter;
