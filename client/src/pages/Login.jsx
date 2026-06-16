@@ -1,13 +1,55 @@
 import React, { useState } from "react";
+import { useAppContext } from "../context/AppContext.jsx";
+import toast from "react-hot-toast";
 
 const Login = () => {
   const [state, setState] = useState("login");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const handleSubmit = (e) => {
+
+  const { axios, setToken } = useAppContext();
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
+    const url = state === "login" ? "/api/user/login" : "/api/user/register";
+
+    const payload =
+      state === "login"
+        ? {
+            email,
+            password,
+          }
+        : {
+            name,
+            email,
+            password,
+          };
+
+    try {
+      const { data } = await axios.post(url, payload);
+
+      if (data.success) {
+        setToken(data.token);
+
+        localStorage.setItem("token", data.token);
+
+        toast.success(
+          state === "login" ? "Login successful" : "Account created",
+        );
+
+        setName("");
+        setEmail("");
+        setPassword("");
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || error.message);
+    }
   };
+
   return (
     <form
       onSubmit={handleSubmit}
@@ -17,41 +59,48 @@ const Login = () => {
         <span className="text-purple-700">User</span>{" "}
         {state === "login" ? "Login" : "Sign Up"}
       </p>
+
       {state === "register" && (
         <div className="w-full">
           <p>Name</p>
+
           <input
-            onChange={(e) => setName(e.target.value)}
-            value={name}
-            placeholder="type here"
-            className="border border-gray-200 rounded w-full p-2 mt-1 outline-purple-700"
             type="text"
             required
+            value={name}
+            placeholder="type here"
+            onChange={(e) => setName(e.target.value)}
+            className="border border-gray-200 rounded w-full p-2 mt-1 outline-purple-700"
           />
         </div>
       )}
-      <div className="w-full ">
+
+      <div className="w-full">
         <p>Email</p>
+
         <input
-          onChange={(e) => setEmail(e.target.value)}
-          value={email}
-          placeholder="type here"
-          className="border border-gray-200 rounded w-full p-2 mt-1 outline-purple-700"
           type="email"
           required
+          value={email}
+          placeholder="type here"
+          onChange={(e) => setEmail(e.target.value)}
+          className="border border-gray-200 rounded w-full p-2 mt-1 outline-purple-700"
         />
       </div>
-      <div className="w-full ">
+
+      <div className="w-full">
         <p>Password</p>
+
         <input
-          onChange={(e) => setPassword(e.target.value)}
-          value={password}
-          placeholder="type here"
-          className="border border-gray-200 rounded w-full p-2 mt-1 outline-purple-700"
           type="password"
           required
+          value={password}
+          placeholder="type here"
+          onChange={(e) => setPassword(e.target.value)}
+          className="border border-gray-200 rounded w-full p-2 mt-1 outline-purple-700"
         />
       </div>
+
       {state === "register" ? (
         <p>
           Already have account?{" "}
@@ -73,6 +122,7 @@ const Login = () => {
           </span>
         </p>
       )}
+
       <button
         type="submit"
         className="bg-purple-500 hover:bg-purple-600 transition-all text-white w-full py-2 rounded-md cursor-pointer"
