@@ -68,25 +68,25 @@ export const imageMessageController = async (req, res) => {
       isImage: false,
     });
 
-    //ENCODE PROMPT
-    // Construct ImageKit AI generation URL
-    const generatedImageUrl = `${process.env.IMAGEKIT_URL_ENDPOINT}/
-ik-genimg-prompt-${encodedPrompt}/devgpt/${Date.now()}.png?tr=w-800,
-h-800`;
+    // 1. Encode the prompt
+    const encodedPrompt = encodeURIComponent(prompt);
 
-    // Convert to Base64
+    // 2. Construct ImageKit AI generation URL
+    const generatedImageUrl = `${process.env.IMAGEKIT_URL_ENDPOINT}/ik-genimg-prompt-${encodedPrompt}/devgpt/${Date.now()}.png?tr=w-800,h-800`;
+
+    // 3. Fetch the generated image
+    const aiImageResponse = await axios.get(generatedImageUrl, {
+      responseType: "arraybuffer",
+    });
+
+    // 4. Convert to Base64
     const base64Image = `data:image/png;base64,${Buffer.from(aiImageResponse.data, "binary").toString("base64")}`;
 
-    // Upload to ImageKit Media Library
+    // 5. Upload to ImageKit Media Library
     const uploadResponse = await imagekit.upload({
       file: base64Image,
       fileName: `${Date.now()}.png`,
       folder: "devgpt",
-    });
-
-    // Trigger generation by fetching from ImageKit
-    const aiImageResponse = await axios.get(generatedImageUrl, {
-      responseType: "arraybuffer",
     });
     const reply = {
       role: "assistant",
